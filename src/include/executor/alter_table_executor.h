@@ -44,6 +44,9 @@ class AlterTableExecutor : public AbstractExecutor {
   bool RenameColumn(const planner::AlterTablePlan &node,
                     concurrency::TransactionContext *txn);
 
+  bool DropColumns(const peloton::planner::AlterTablePlan &node,
+                   peloton::concurrency::TransactionContext *txn);
+
  private:
   ExecutorContext *context_;
 };

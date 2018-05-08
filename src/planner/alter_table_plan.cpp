@@ -42,7 +42,14 @@ AlterTablePlan::AlterTablePlan(parser::AlterTableStatement *parse_tree) {
       type_ = AlterType::RENAME_COLUMN;
       break;
     }
-
+    case parser::AlterTableStatement::AlterType::DROP_COLUMN: {
+      type_ = AlterType::DROP_COLUMN;
+      for (std::string col : parse_tree->dropped_names_) {
+        LOG_DEBUG("Drooped column name: %s", col.c_str());
+        dropped_columns_.push_back(col);
+      }
+      break;
+    }
     default:
       LOG_ERROR("Not Implemented the plan type %d in alter table!", (int)type_);
       type_ = AlterType::INVALID;
@@ -52,7 +59,7 @@ AlterTablePlan::AlterTablePlan(parser::AlterTableStatement *parse_tree) {
 const std::string AlterTablePlan::GetInfo() const {
   std::ostringstream os;
 
-  os << "Alter table plan["
+  os << "Alter table plan ["
      << "type:" << type_ << ", "
      << "table::" << table_name_ << ", "
      << "schema:" << schema_name_ << ", "

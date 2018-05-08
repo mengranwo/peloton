@@ -23,7 +23,15 @@ namespace parser {
  */
 class AlterTableStatement : public TableRefStatement {
  public:
-  enum class AlterType { INVALID = 0, ADD_COLUMN = 1, RENAME_COLUMN = 2 };
+  enum class AlterType {
+    INVALID = 0,
+    ADD_COLUMN = 1,
+    DROP_COLUMN = 2,
+    RENAME_COLUMN = 3
+  };
+  // Defualt constructor
+  AlterTableStatement()
+      : TableRefStatement(StatementType::ALTER), type_(AlterType::INVALID) {}
 
   AlterTableStatement(AlterType type)
       : TableRefStatement(StatementType::ALTER), type_(type) {}
@@ -34,7 +42,7 @@ class AlterTableStatement : public TableRefStatement {
 
   AlterType type_;
   // Dropped columns
-  std::vector<char *> dropped_names_;
+  std::vector<std::string> dropped_names_;
   // Added columns
   std::vector<std::unique_ptr<ColumnDefinition>> added_columns_;
   // changed columns(change type)

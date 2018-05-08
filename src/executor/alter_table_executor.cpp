@@ -45,9 +45,13 @@ bool AlterTableExecutor::DExecute() {
     case AlterType::RENAME_COLUMN:
       result = RenameColumn(node, txn);
       break;
+    case AlterType::DROP_COLUMN:
+      result = DropColumns(node, txn);
+      break;
     default:
-      throw NotImplementedException(StringUtil::Format(
-          "Alter Type not supported, %s", AlterTypeToString(type).c_str()));
+      throw NotImplementedException(
+          StringUtil::Format("Alter Type not supported in executor, %s",
+                             AlterTypeToString(type).c_str()));
   }
   return result;
 }
@@ -68,6 +72,24 @@ bool AlterTableExecutor::RenameColumn(
 
   LOG_TRACE("Alter table result is: %s",
             ResultTypeToString(txn->GetResult()).c_str());
+  return false;
+}
+
+bool AlterTableExecutor::DropColumns(
+    const peloton::planner::AlterTablePlan &node,
+    peloton::concurrency::TransactionContext *txn) {
+  auto database_name = node.GetDatabaseName();
+  auto schema_name = node.GetSchemaName();
+  auto table_name = node.GetTableName();
+  auto dropped_columns = node.GetDroppedColumns();
+  (void)txn;
+  // TODO: add drop columns logic within catalog
+  // ResultType result = catalog::Catalog::GetInstance()->DropColumns(
+  //     database_name, schema_name, table_name, dropped_columns, txn);
+  // txn->SetResult(result);
+
+  // LOG_TRACE("Alter table result is: %s",
+  //           ResultTypeToString(txn->GetResult()).c_str());
   return false;
 }
 

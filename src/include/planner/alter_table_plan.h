@@ -32,7 +32,7 @@ namespace planner {
 class AlterTablePlan : public AbstractPlan {
  public:
   AlterTablePlan() = delete;
-
+  // constructor for rename type
   explicit AlterTablePlan(AlterType type, const std::string &table_name,
                           const std::string &schema_name,
                           const std::string &database_name,
@@ -66,6 +66,11 @@ class AlterTablePlan : public AbstractPlan {
   // function used for rename statement
   std::string GetNewName() const { return new_name_; }
 
+  // function used for drop column statement
+  const std::vector<std::string> &GetDroppedColumns() const {
+    return dropped_columns_;
+  }
+
  private:
   AlterType type_;
   // Table Name
@@ -81,6 +86,9 @@ class AlterTablePlan : public AbstractPlan {
   // NOTE: postreSQL only supports change one column name at time
   std::string old_name_ = "";
   std::string new_name_ = "";
+
+  // dropped_column, define the column you want to drop
+  std::vector<std::string> dropped_columns_;
 };
 
 }  // namespace planner

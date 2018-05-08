@@ -199,7 +199,7 @@ unique_ptr<planner::AbstractPlan> Optimizer::HandleDDLStatement(
       break;
     }
     case StatementType::ALTER: {
-      LOG_DEBUG("Adding Alter Plan ...");
+      LOG_TRACE("Adding Alter Plan ...");
       unique_ptr<planner::AbstractPlan> alter_table_plan(
           new planner::AlterTablePlan((parser::AlterTableStatement *)tree));
       ddl_plan = move(alter_table_plan);

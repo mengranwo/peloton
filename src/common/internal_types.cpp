@@ -436,8 +436,11 @@ std::string AlterTypeToString(AlterType type) {
     case AlterType::RENAME_COLUMN: {
       return "RENAME COLUMN";
     }
-    case AlterType::ALTER: {
-      return "ALTER";
+    case AlterType::ADD_COLUMN: {
+      return "ADD COLUMN";
+    }
+    case AlterType::DROP_COLUMN: {
+      return "DROP COLUMN";
     }
     default: {
       throw ConversionException(
@@ -453,8 +456,10 @@ AlterType StringToAlterType(const std::string &str) {
     return AlterType::INVALID;
   } else if (upper_str == "RENAME COLUMN") {
     return AlterType::RENAME_COLUMN;
-  } else if (upper_str == "ALTER") {
-    return AlterType::ALTER;
+  } else if (upper_str == "ADD COLUMN") {
+    return AlterType::ADD_COLUMN;
+  } else if (upper_str == "DROP COLUMN") {
+    return AlterType::DROP_COLUMN;
   } else {
     throw ConversionException(StringUtil::Format(
         "No AlterType conversion from string '%s'", upper_str.c_str()));

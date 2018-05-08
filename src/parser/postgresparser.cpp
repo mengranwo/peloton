@@ -1802,9 +1802,48 @@ parser::AlterTableStatement *PostgresParser::RenameTransform(RenameStmt *root) {
   }
   result->newName = root->newname;
 
-  LOG_TRACE("finished rename transform");
-  LOG_DEBUG("rename transform done, subname is %s and newName is %s",
+  LOG_TRACE("rename transform done, subname is %s and newName is %s",
             result->oldName.c_str(), result->newName.c_str());
+  return result;
+}
+
+// This function takes in a RenameStmt Postgres parsenod and transfers into a
+// Peloton AlterTableStatement parsenode. Please refer to parser/parsenode.h for
+// the definition of RenameStmt parsenodes.
+parser::AlterTableStatement *PostgresParser::AlterTableTransform(
+    AlterTableStmt *root) {
+  // create peloton AlterTableStatement parsenode
+  parser::AlterTableStatement *result = new parser::AlterTableStatement();
+
+  RangeVar *relation = root->relation;
+  result->table_info_.reset(new parser::TableInfo());
+  // gather information about target table
+  if (relation->catalogname) {
+    result->table_info_->database_name = relation->catalogname;
+  }
+  if (relation->schemaname) {
+    result->table_info_->schema_name = relation->schemaname;
+  }
+  if (relation->relname) {
+    result->table_info_->table_name = relation->relname;
+  }
+  // iterator, traverse through all the drop/add commands
+  for (auto cell = root->cmds->head; cell != NULL; cell = cell->next) {
+    auto cmd = reinterpret_cast<AlterTableCmd *>(cell->data.ptr_value);
+    switch (cmd->subtype) {
+      // drop column
+      case AT_DropColumn: {
+        result->type_ = parser::AlterTableStatement::AlterType::DROP_COLUMN;
+        result->dropped_names_.push_back(cmd->name);
+        break;
+      }
+      default: {
+        throw NotImplementedException(StringUtil::Format(
+            "Alter Table type %d not supported yet...\n", cmd->subtype));
+      }
+    }
+  }
+  LOG_TRACE("alter table transform done...");
   return result;
 }
 
@@ -1883,6 +1922,9 @@ parser::SQLStatement *PostgresParser::NodeTransform(Node *stmt) {
       break;
     case T_RenameStmt:
       result = RenameTransform(reinterpret_cast<RenameStmt *>(stmt));
+      break;
+    case T_AlterTableStmt:
+      result = AlterTableTransform(reinterpret_cast<AlterTableStmt *>(stmt));
       break;
     default: {
       throw NotImplementedException(StringUtil::Format(

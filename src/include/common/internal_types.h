@@ -658,7 +658,8 @@ enum class AlterType {
   INVALID = INVALID_TYPE_ID,  // invalid alter type
   RENAME_COLUMN = 1,          // rename column
   RENAME_TABLE = 2,           // rename table
-  ALTER = 3                   // add/drop column
+  ADD_COLUMN = 3,             // add column
+  DROP_COLUMN = 4,            // drop column
 };
 std::string AlterTypeToString(AlterType type);
 AlterType StringToAlterType(const std::string &str);
