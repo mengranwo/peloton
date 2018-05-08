@@ -90,6 +90,10 @@ class ColumnCatalog : public AbstractCatalog {
                     concurrency::TransactionContext *txn);
   bool DeleteColumns(oid_t table_oid, concurrency::TransactionContext *txn);
 
+  bool UpdateColumnName(oid_t table_oid, const std::string &column_name,
+                        const std::string &new_name,
+                        concurrency::TransactionContext *txn);
+
  private:
   //===--------------------------------------------------------------------===//
   // Read Related API(only called within table catalog object)

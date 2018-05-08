@@ -12,12 +12,11 @@
 
 #include "binder/bind_node_visitor.h"
 #include "catalog/catalog.h"
-#include "expression/expression_util.h"
-#include "expression/star_expression.h"
 #include "type/type_id.h"
 
 #include "expression/aggregate_expression.h"
 #include "expression/case_expression.h"
+#include "expression/expression_util.h"
 #include "expression/function_expression.h"
 #include "expression/operator_expression.h"
 #include "expression/star_expression.h"
@@ -182,6 +181,9 @@ void BindNodeVisitor::Visit(parser::InsertStatement *node) {
   context_ = nullptr;
 }
 void BindNodeVisitor::Visit(parser::DropStatement *node) {
+  node->TryBindDatabaseName(default_database_name_);
+}
+void BindNodeVisitor::Visit(parser::AlterTableStatement *node) {
   node->TryBindDatabaseName(default_database_name_);
 }
 void BindNodeVisitor::Visit(parser::PrepareStatement *) {}

@@ -1776,6 +1776,38 @@ parser::TransactionStatement *PostgresParser::TransactionTransform(
   }
 }
 
+// This function takes in a RenameStmt Postgres parsenod and transfers into a
+// Peloton AlterTableStatement parsenode. Please refer to parser/parsenode.h for
+// the definition of RenameStmt parsenodes.
+parser::AlterTableStatement *PostgresParser::RenameTransform(RenameStmt *root) {
+  // create peloton AlterTableStatement parsenode
+  parser::AlterTableStatement *result = new parser::AlterTableStatement(
+      parser::AlterTableStatement::AlterType::RENAME_COLUMN);
+
+  RangeVar *relation = root->relation;
+  result->table_info_.reset(new parser::TableInfo());
+  // gather information about target table
+  if (relation->catalogname) {
+    result->table_info_->database_name = relation->catalogname;
+  }
+  if (relation->schemaname) {
+    result->table_info_->schema_name = relation->schemaname;
+  }
+  if (relation->relname) {
+    result->table_info_->table_name = relation->relname;
+  }
+  // name of contained object (column, rule, trigger, etc)
+  if (root->subname) {
+    result->oldName = root->subname;
+  }
+  result->newName = root->newname;
+
+  LOG_TRACE("finished rename transform");
+  LOG_DEBUG("rename transform done, subname is %s and newName is %s",
+            result->oldName.c_str(), result->newName.c_str());
+  return result;
+}
+
 // This function transfers a single Postgres statement into
 // a Peloton SQLStatement object. It checks the type of
 // Postgres parsenode of the input and call the corresponding
@@ -1848,6 +1880,9 @@ parser::SQLStatement *PostgresParser::NodeTransform(Node *stmt) {
       break;
     case T_ExplainStmt:
       result = ExplainTransform(reinterpret_cast<ExplainStmt *>(stmt));
+      break;
+    case T_RenameStmt:
+      result = RenameTransform(reinterpret_cast<RenameStmt *>(stmt));
       break;
     default: {
       throw NotImplementedException(StringUtil::Format(

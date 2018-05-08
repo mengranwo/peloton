@@ -427,6 +427,46 @@ std::ostream &operator<<(std::ostream &os, const DropType &type) {
   return os;
 }
 
+std::string AlterTypeToString(AlterType type) {
+  // TODO: support more AlterType
+  switch (type) {
+    case AlterType::INVALID: {
+      return "INVALID";
+    }
+    case AlterType::RENAME_COLUMN: {
+      return "RENAME COLUMN";
+    }
+    case AlterType::ALTER: {
+      return "ALTER";
+    }
+    default: {
+      throw ConversionException(
+          StringUtil::Format("No string conversion for AlterType value '%d'",
+                             static_cast<int>(type)));
+    }
+  }
+}
+
+AlterType StringToAlterType(const std::string &str) {
+  std::string upper_str = StringUtil::Upper(str);
+  if (upper_str == "INVALID") {
+    return AlterType::INVALID;
+  } else if (upper_str == "RENAME COLUMN") {
+    return AlterType::RENAME_COLUMN;
+  } else if (upper_str == "ALTER") {
+    return AlterType::ALTER;
+  } else {
+    throw ConversionException(StringUtil::Format(
+        "No AlterType conversion from string '%s'", upper_str.c_str()));
+  }
+  return AlterType::INVALID;
+}
+
+std::ostream &operator<<(std::ostream &os, const AlterType &type) {
+  os << AlterTypeToString(type);
+  return os;
+}
+
 //===--------------------------------------------------------------------===//
 // Statement - String Utilities
 //===--------------------------------------------------------------------===//

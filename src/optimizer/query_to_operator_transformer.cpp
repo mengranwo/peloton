@@ -24,8 +24,8 @@
 #include "parser/statements.h"
 #include "settings/settings_manager.h"
 
-using std::vector;
 using std::shared_ptr;
+using std::vector;
 
 namespace peloton {
 namespace optimizer {
@@ -363,6 +363,8 @@ void QueryToOperatorTransformer::Visit(
     UNUSED_ATTRIBUTE parser::CopyStatement *op) {}
 void QueryToOperatorTransformer::Visit(
     UNUSED_ATTRIBUTE parser::AnalyzeStatement *op) {}
+void QueryToOperatorTransformer::Visit(
+    UNUSED_ATTRIBUTE parser::AlterTableStatement *op) {}
 
 void QueryToOperatorTransformer::Visit(expression::ComparisonExpression *expr) {
   auto expr_type = expr->GetExpressionType();

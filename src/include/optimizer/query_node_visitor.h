@@ -21,6 +21,7 @@ class CreateFunctionStatement;
 class InsertStatement;
 class DeleteStatement;
 class DropStatement;
+class AlterTableStatement;
 class PrepareStatement;
 class ExecuteStatement;
 class TransactionStatement;

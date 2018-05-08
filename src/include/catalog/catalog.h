@@ -185,6 +185,18 @@ class Catalog {
    */
   ResultType DropLayout(oid_t database_oid, oid_t table_oid, oid_t layout_oid,
                         concurrency::TransactionContext *txn);
+
+  //===--------------------------------------------------------------------===//
+  // ALTER FUNCTIONS
+  //===--------------------------------------------------------------------===//
+
+  ResultType RenameColumn(const std::string &database_name,
+                          const std::string &schema_name,
+                          const std::string &table_name,
+                          const std::string &old_name,
+                          const std::string &new_name,
+                          concurrency::TransactionContext *txn);
+
   //===--------------------------------------------------------------------===//
   // GET WITH NAME - CHECK FROM CATALOG TABLES, USING TRANSACTION
   //===--------------------------------------------------------------------===//

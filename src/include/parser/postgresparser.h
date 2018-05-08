@@ -12,10 +12,10 @@
 
 #pragma once
 
+#include "common/internal_types.h"
 #include "parser/parsenodes.h"
 #include "parser/pg_query.h"
 #include "parser/statements.h"
-#include "common/internal_types.h"
 
 namespace peloton {
 namespace parser {
@@ -167,7 +167,8 @@ class PostgresParser {
   static parser::OrderDescription *OrderByTransform(List *order);
 
   // transform helper for table column definitions
-  static void ColumnDefTransform(ColumnDef* root, parser::CreateStatement* stmt);
+  static void ColumnDefTransform(ColumnDef *root,
+                                 parser::CreateStatement *stmt);
 
   // transform helper for create statements
   static parser::SQLStatement *CreateTransform(CreateStmt *root);
@@ -195,7 +196,8 @@ class PostgresParser {
    * @param Postgres CreateDatabaseStmt parsenode
    * @return a peloton CreateStatement node
    */
-  static parser::SQLStatement *CreateDatabaseTransform(CreateDatabaseStmt *root);
+  static parser::SQLStatement *CreateDatabaseTransform(
+      CreateDatabaseStmt *root);
 
   // transform helper for create schema statements
   static parser::SQLStatement *CreateSchemaTransform(CreateSchemaStmt *root);
@@ -282,13 +284,16 @@ class PostgresParser {
   static parser::CopyStatement *CopyTransform(CopyStmt *root);
 
   // transform helper for analyze statement
-  static parser::AnalyzeStatement *VacuumTransform(VacuumStmt* root);
+  static parser::AnalyzeStatement *VacuumTransform(VacuumStmt *root);
 
-  static parser::VariableSetStatement *VariableSetTransform(VariableSetStmt* root);
+  static parser::VariableSetStatement *VariableSetTransform(
+      VariableSetStmt *root);
 
   // transform helper for subquery expressions
   static expression::AbstractExpression *SubqueryExprTransform(SubLink *node);
 
+  // transform helper for alter table statement
+  static parser::AlterTableStatement *RenameTransform(RenameStmt *root);
 };
 
 }  // namespace parser

@@ -574,6 +574,8 @@ enum class PlanNodeType {
   CREATE = 34,
   POPULATE_INDEX = 35,
   ANALYZE = 36,
+  RENAME = 37,
+  ALTER = 38,
 
   // Communication Nodes
   SEND = 40,
@@ -649,6 +651,20 @@ class EnumHash {
 };
 
 //===--------------------------------------------------------------------===//
+// Alter Types
+//===--------------------------------------------------------------------===//
+
+enum class AlterType {
+  INVALID = INVALID_TYPE_ID,  // invalid alter type
+  RENAME_COLUMN = 1,          // rename column
+  RENAME_TABLE = 2,           // rename table
+  ALTER = 3                   // add/drop column
+};
+std::string AlterTypeToString(AlterType type);
+AlterType StringToAlterType(const std::string &str);
+std::ostream &operator<<(std::ostream &os, const AlterType &type);
+
+//===--------------------------------------------------------------------===//
 // Language Types for UDFs
 //===--------------------------------------------------------------------===//
 
@@ -671,7 +687,7 @@ enum class StatementType {
   DROP = 7,                   // drop statement type
   PREPARE = 8,                // prepare statement type
   EXECUTE = 9,                // execute statement type
-  RENAME = 11,                // rename statement type
+  RENAME = 11,                // rename column statement type
   ALTER = 12,                 // alter statement type
   TRANSACTION = 13,           // transaction statement type,
   COPY = 14,                  // copy type

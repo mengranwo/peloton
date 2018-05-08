@@ -832,6 +832,53 @@ ResultType Catalog::DropLayout(oid_t database_oid, oid_t table_oid,
     return ResultType::FAILURE;
   }
 
+/**
+ * @brief Change the column name in the catalog.
+ * @param database_name database to which the table belongs to
+ * @param table_name table to which the column belongs to
+ * @param columns the column to be dropped
+ * @param txn the transaction Context
+ * @return TransactionContext ResultType(SUCCESS or FAILURE)
+ */
+ResultType Catalog::RenameColumn(const std::string &database_name,
+                                 const std::string &schema_name,
+                                 const std::string &table_name,
+                                 const std::string &old_name,
+                                 const std::string &new_name,
+                                 concurrency::TransactionContext *txn) {
+  if (txn == nullptr) {
+    throw CatalogException("Change Column name requires transaction.");
+  }
+  LOG_TRACE("Change Column Name %s to %s", old_name.c_str(), new_name.c_str());
+
+  // Checking if statement is valid
+  auto database_object =
+      DatabaseCatalog::GetInstance()->GetDatabaseObject(database_name, txn);
+  if (database_object == nullptr) {
+    throw CatalogException("Change Column Name : database " + database_name +
+                           " does not exist");
+  }
+
+  // check if table exists
+  auto table_object = database_object->GetTableObject(table_name, schema_name);
+  if (table_object == nullptr) {
+    throw CatalogException("Change Column Name : table " + schema_name + "." +
+                           table_name + " does not exist");
+  }
+
+  // Check the validity of old name and the new name
+  auto old_column_object = table_object->GetColumnObject(old_name);
+  auto new_column_object = table_object->GetColumnObject(new_name);
+  if (old_column_object == nullptr || new_column_object != nullptr) {
+    throw CatalogException(
+        "Change Column Name : New column already exists in the table.");
+  }
+  // TODO: update pg_table schema version, increment by one
+  // Modify the pg_attribute
+  auto pg_attribute =
+      catalog_map_[table_object->GetDatabaseOid()]->GetColumnCatalog();
+  pg_attribute->UpdateColumnName(table_object->GetTableOid(), old_name,
+                                 new_name, txn);
   return ResultType::SUCCESS;
 }
 

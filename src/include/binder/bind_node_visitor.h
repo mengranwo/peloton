@@ -13,9 +13,9 @@
 #pragma once
 
 #include "binder/binder_context.h"
+#include "common/internal_types.h"
 #include "common/sql_node_visitor.h"
 #include "parser/statements.h"
-#include "common/internal_types.h"
 
 namespace peloton {
 
@@ -67,6 +67,7 @@ class BindNodeVisitor : public SqlNodeVisitor {
   void Visit(parser::UpdateStatement *) override;
   void Visit(parser::CopyStatement *) override;
   void Visit(parser::AnalyzeStatement *) override;
+  void Visit(parser::AlterTableStatement *) override;
 
   void Visit(expression::CaseExpression *expr) override;
   void Visit(expression::SubqueryExpression *expr) override;

@@ -33,6 +33,7 @@
 #include "optimizer/rule_impls.h"
 #include "parser/create_statement.h"
 
+#include "planner/alter_table_plan.h"
 #include "planner/analyze_plan.h"
 #include "planner/create_function_plan.h"
 #include "planner/create_plan.h"
@@ -44,13 +45,13 @@
 
 #include "storage/data_table.h"
 
-using std::vector;
-using std::unordered_map;
-using std::shared_ptr;
-using std::unique_ptr;
+using std::make_shared;
 using std::move;
 using std::pair;
-using std::make_shared;
+using std::shared_ptr;
+using std::unique_ptr;
+using std::unordered_map;
+using std::vector;
 
 namespace peloton {
 namespace optimizer {
@@ -197,6 +198,13 @@ unique_ptr<planner::AbstractPlan> Optimizer::HandleDDLStatement(
       }
       break;
     }
+    case StatementType::ALTER: {
+      LOG_DEBUG("Adding Alter Plan ...");
+      unique_ptr<planner::AbstractPlan> alter_table_plan(
+          new planner::AlterTablePlan((parser::AlterTableStatement *)tree));
+      ddl_plan = move(alter_table_plan);
+      break;
+    }
     case StatementType::TRANSACTION: {
       break;
     }
@@ -278,8 +286,7 @@ QueryInfo Optimizer::GetQueryInfo(parser::SQLStatement *tree) {
                            output_exprs, physical_props);
       break;
     }
-    default:
-      ;
+    default:;
   }
 
   return QueryInfo(output_exprs, physical_props);
