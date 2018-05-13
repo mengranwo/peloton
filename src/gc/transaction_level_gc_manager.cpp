@@ -257,25 +257,34 @@ void TransactionLevelGCManager::AddToRecycleMap(
   for (auto &entry : *(txn_ctx->GetGCObjectSetPtr().get())) {
     oid_t database_oid = std::get<0>(entry);
     oid_t table_oid = std::get<1>(entry);
-    oid_t index_oid = std::get<2>(entry);
+    oid_t object_oid = std::get<2>(entry);
     PELOTON_ASSERT(database_oid != INVALID_OID);
     auto database = storage_manager->GetDatabaseWithOid(database_oid);
     PELOTON_ASSERT(database != nullptr);
+    // drop database object
     if (table_oid == INVALID_OID) {
       storage_manager->RemoveDatabaseFromStorageManager(database_oid);
       continue;
     }
+    // drop data table object
     auto table = database->GetTableWithOid(table_oid);
     PELOTON_ASSERT(table != nullptr);
-    if (index_oid == INVALID_OID) {
+    if (object_oid == INVALID_OID) {
       database->DropTableWithOid(table_oid);
       LOG_DEBUG("GCing table %u", table_oid);
       continue;
     }
-    auto index = table->GetIndexWithOid(index_oid);
-    PELOTON_ASSERT(index != nullptr);
-    table->DropIndexWithOid(index_oid);
-    LOG_DEBUG("GCing index %u", index_oid);
+    auto ddl_type = std::get<3>(entry);
+    if (ddl_type == DDLType::DROP) {
+      // drop index object
+      auto index = table->GetIndexWithOid(object_oid);
+      PELOTON_ASSERT(index != nullptr);
+      table->DropIndexWithOid(object_oid);
+      LOG_DEBUG("GCing index %u", object_oid);
+    } else if (ddl_type == DDLType::ALTER) {
+      // TODO: drop tile group object
+      LOG_DEBUG("GCing tile group %u", object_oid);
+    }
   }
 
   delete txn_ctx;

@@ -189,7 +189,6 @@ class Catalog {
   //===--------------------------------------------------------------------===//
   // ALTER FUNCTIONS
   //===--------------------------------------------------------------------===//
-
   ResultType RenameColumn(const std::string &database_name,
                           const std::string &schema_name,
                           const std::string &table_name,
@@ -197,6 +196,12 @@ class Catalog {
                           const std::string &new_name,
                           concurrency::TransactionContext *txn);
 
+
+  ResultType DropColumns(const std::string &database_name,
+                         const std::string &schema_name,
+                         const std::string &table_name,
+                         std::vector<std::string> &dropped_columns,
+                         concurrency::TransactionContext *txn);
   //===--------------------------------------------------------------------===//
   // GET WITH NAME - CHECK FROM CATALOG TABLES, USING TRANSACTION
   //===--------------------------------------------------------------------===//

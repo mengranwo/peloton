@@ -649,7 +649,7 @@ TableCatalog::GetTableObjects(concurrency::TransactionContext *txn) {
  * @param   txn          TransactionContext
  * @return  Whether update is successful
  */
-bool TableCatalog::UpdateVersionId(oid_t update_val, oid_t table_oid,
+bool TableCatalog::UpdateVersionId(uint32_t update_val, oid_t table_oid,
                                    concurrency::TransactionContext *txn) {
   std::vector<oid_t> update_columns({ColumnId::VERSION_ID});  // version_id
   oid_t index_offset = IndexId::PRIMARY_KEY;  // Index of table_oid

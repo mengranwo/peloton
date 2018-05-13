@@ -164,7 +164,7 @@ class TableCatalog : public AbstractCatalog {
                    concurrency::TransactionContext *txn);
   bool DeleteTable(oid_t table_oid, concurrency::TransactionContext *txn);
 
-  bool UpdateVersionId(oid_t update_val, oid_t table_oid,
+  bool UpdateVersionId(uint32_t update_val, oid_t table_oid,
                        concurrency::TransactionContext *txn);
 
   //===--------------------------------------------------------------------===//

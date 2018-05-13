@@ -834,11 +834,12 @@ ResultType Catalog::DropLayout(oid_t database_oid, oid_t table_oid,
 
 /**
  * @brief Change the column name in the catalog.
- * @param database_name database to which the table belongs to
- * @param table_name table to which the column belongs to
- * @param columns the column to be dropped
- * @param txn the transaction Context
- * @return TransactionContext ResultType(SUCCESS or FAILURE)
+ * @param   database_name   database to which the table belongs to
+ * @param   schema_name     the namespace which the altered table belongs to
+ * @param   table_name      table to which the column belongs to
+ * @param   old_name        the column to be renamed
+ * @param   txn             the transaction Context
+ * @return  ResultType(SUCCESS or FAILURE)
  */
 ResultType Catalog::RenameColumn(const std::string &database_name,
                                  const std::string &schema_name,
@@ -873,12 +874,88 @@ ResultType Catalog::RenameColumn(const std::string &database_name,
     throw CatalogException(
         "Change Column Name : New column already exists in the table.");
   }
-  // TODO: update pg_table schema version, increment by one
-  // Modify the pg_attribute
   auto pg_attribute =
       catalog_map_[table_object->GetDatabaseOid()]->GetColumnCatalog();
+  // will evict corresponding column catalog object inside function
+  // updateColumnName()
   pg_attribute->UpdateColumnName(table_object->GetTableOid(), old_name,
                                  new_name, txn);
+  return ResultType::SUCCESS;
+}
+
+/**
+ * @brief Drop columns
+ * 1. if we've built index on the column that'll be dropped, drop the index as
+ * well
+ * 2. drop the columns records in pg_attribute
+ * 3. add new tile group inside data table
+ * 4. record tile group id into txn context
+ * 5. update schema version id
+ * @param database_name    database to which the table belongs to
+ * @param schema_name      the namespace which the altered table belongs to
+ * @param table_name       table to which the column belongs to
+ * @param dropped_columns  the column to be dropped
+ * @param txn              the transaction Context
+ * @return ResultType(SUCCESS or FAILURE)
+ */
+ResultType Catalog::DropColumns(const std::string &database_name,
+                                const std::string &schema_name,
+                                const std::string &table_name,
+                                std::vector<std::string> &dropped_columns,
+                                concurrency::TransactionContext *txn) {
+  if (txn == nullptr) {
+    throw CatalogException("Drop Columns requires transaction.");
+  }
+
+  // Checking if statement is valid
+  auto database_object =
+      DatabaseCatalog::GetInstance()->GetDatabaseObject(database_name, txn);
+  if (database_object == nullptr) {
+    throw CatalogException("Drop Columns : database " + database_name +
+                           " does not exist");
+  }
+
+  // check if table exists
+  auto table_object = database_object->GetTableObject(table_name, schema_name);
+  if (table_object == nullptr) {
+    throw CatalogException("Drop Columns : table " + schema_name + "." +
+                           table_name + " does not exist");
+  }
+
+  auto pg_attribute =
+      catalog_map_[table_object->GetDatabaseOid()]->GetColumnCatalog();
+  // Check the validity of dropped column name
+  for (std::string column_name : dropped_columns) {
+    auto column_object = table_object->GetColumnObject(column_name);
+    if (column_object == nullptr) {
+      throw CatalogException("Drop Columns : column " + column_name +
+                             " does not exist");
+    }
+    // get ALL the index objects from this table
+    auto index_objects_map = table_object->GetIndexObjects();
+    for (auto it : index_objects_map) {
+      auto index_object = it.second;
+      std::unordered_set<oid_t> key_attrs(index_object->GetKeyAttrs().begin(),
+                                          index_object->GetKeyAttrs().end());
+      // drop index if necessary
+      if (key_attrs.count(column_object->GetColumnId()) > 0) {
+        DropIndex(table_object->GetDatabaseOid(), it.first, txn);
+      }
+    }
+    // delete column record from pg_attribute
+    pg_attribute->DeleteColumn(table_object->GetTableOid(), column_name, txn);
+  }
+
+  // uint32_t version_id = table_object->GetVersionId();
+  // TODO: add tile group inside data table(schema, version_id)
+  // step 4
+  // txn->RecordAlter(table_object->GetDatabaseOid(),
+  // table_object->GetTableOid(), tile_group_id);
+  // step 5
+  // auto pg_table =
+  // catalog_map_[database_object->GetDatabaseOid()]->GetTableCatalog();
+  // pg_table->UpdateVersionId(version_id + 1, table_object->GetTableOid(),
+  // txn);
   return ResultType::SUCCESS;
 }
 

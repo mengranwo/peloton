@@ -38,15 +38,14 @@ bool AlterTableExecutor::DExecute() {
   LOG_TRACE("Executing Alter Table ...");
   bool result = false;
   const planner::AlterTablePlan &node = GetPlanNode<planner::AlterTablePlan>();
-  auto txn = context_->GetTransaction();
-  AlterType type = node.GetAlterTableType();
 
+  AlterType type = node.GetAlterTableType();
   switch (type) {
     case AlterType::RENAME_COLUMN:
-      result = RenameColumn(node, txn);
+      result = RenameColumn(node);
       break;
     case AlterType::DROP_COLUMN:
-      result = DropColumns(node, txn);
+      result = DropColumns(node);
       break;
     default:
       throw NotImplementedException(
@@ -57,8 +56,8 @@ bool AlterTableExecutor::DExecute() {
 }
 
 bool AlterTableExecutor::RenameColumn(
-    const peloton::planner::AlterTablePlan &node,
-    peloton::concurrency::TransactionContext *txn) {
+    const peloton::planner::AlterTablePlan &node) {
+  auto txn = context_->GetTransaction();
   auto database_name = node.GetDatabaseName();
   auto schema_name = node.GetSchemaName();
   auto table_name = node.GetTableName();
@@ -70,26 +69,25 @@ bool AlterTableExecutor::RenameColumn(
       txn);
   txn->SetResult(result);
 
-  LOG_TRACE("Alter table result is: %s",
+  LOG_TRACE("Alter table(rename column) result is: %s",
             ResultTypeToString(txn->GetResult()).c_str());
   return false;
 }
 
 bool AlterTableExecutor::DropColumns(
-    const peloton::planner::AlterTablePlan &node,
-    peloton::concurrency::TransactionContext *txn) {
+    const peloton::planner::AlterTablePlan &node) {
+  auto txn = context_->GetTransaction();
   auto database_name = node.GetDatabaseName();
   auto schema_name = node.GetSchemaName();
   auto table_name = node.GetTableName();
   auto dropped_columns = node.GetDroppedColumns();
-  (void)txn;
-  // TODO: add drop columns logic within catalog
-  // ResultType result = catalog::Catalog::GetInstance()->DropColumns(
-  //     database_name, schema_name, table_name, dropped_columns, txn);
-  // txn->SetResult(result);
 
-  // LOG_TRACE("Alter table result is: %s",
-  //           ResultTypeToString(txn->GetResult()).c_str());
+  ResultType result = catalog::Catalog::GetInstance()->DropColumns(
+      database_name, schema_name, table_name, dropped_columns, txn);
+  txn->SetResult(result);
+
+  LOG_TRACE("Alter table(drop columns) result is: %s",
+            ResultTypeToString(txn->GetResult()).c_str());
   return false;
 }
 

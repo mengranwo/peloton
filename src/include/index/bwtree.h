@@ -61,9 +61,9 @@
 #include <inttypes.h>
 using NodeID = uint64_t;
 
-#include "sorted_small_set.h"
-#include "bloom_filter.h"
 #include "atomic_stack.h"
+#include "bloom_filter.h"
+#include "sorted_small_set.h"
 
 // We use this to control from the compiler
 #ifndef BWTREE_NODEBUG
@@ -346,7 +346,7 @@ class BwTreeBase {
 
     // Make sure we do not overflow the chunk of memory
     PELOTON_ASSERT(((size_t)gc_metadata_p + thread_num * CACHE_LINE_SIZE) <=
-              ((size_t)original_p + (thread_num + 1) * CACHE_LINE_SIZE));
+                   ((size_t)original_p + (thread_num + 1) * CACHE_LINE_SIZE));
 
     // At last call constructor of the class; we use placement new
     for (size_t i = 0; i < thread_num; i++) {
@@ -1516,8 +1516,10 @@ class BwTree : public BwTreeBase {
                     const KeyNodeIDPair &p_next_item,
                     const BaseNode *p_child_node_p,
                     const KeyNodeIDPair *p_location)
-        : InnerDataNode{p_insert_item, NodeType::InnerInsertType,
-                        p_child_node_p, p_location,
+        : InnerDataNode{p_insert_item,
+                        NodeType::InnerInsertType,
+                        p_child_node_p,
+                        p_location,
                         &p_child_node_p->GetLowKeyPair(),
                         &p_child_node_p->GetHighKeyPair(),
                         p_child_node_p->GetDepth() + 1,
@@ -1566,8 +1568,10 @@ class BwTree : public BwTreeBase {
                     const KeyNodeIDPair &p_next_item,
                     const BaseNode *p_child_node_p,
                     const KeyNodeIDPair *p_location)
-        : InnerDataNode{p_delete_item, NodeType::InnerDeleteType,
-                        p_child_node_p, p_location,
+        : InnerDataNode{p_delete_item,
+                        NodeType::InnerDeleteType,
+                        p_child_node_p,
+                        p_location,
                         &p_child_node_p->GetLowKeyPair(),
                         &p_child_node_p->GetHighKeyPair(),
                         p_child_node_p->GetDepth() + 1,
@@ -1619,10 +1623,12 @@ class BwTree : public BwTreeBase {
      * Constructor
      */
     InnerRemoveNode(NodeID p_removed_id, const BaseNode *p_child_node_p)
-        : DeltaNode{NodeType::InnerRemoveType, p_child_node_p,
+        : DeltaNode{NodeType::InnerRemoveType,
+                    p_child_node_p,
                     &p_child_node_p->GetLowKeyPair(),
                     &p_child_node_p->GetHighKeyPair(),
-                    p_child_node_p->GetDepth(), p_child_node_p->GetItemCount()},
+                    p_child_node_p->GetDepth(),
+                    p_child_node_p->GetItemCount()},
           removed_id{p_removed_id} {}
   };
 
@@ -1667,7 +1673,8 @@ class BwTree : public BwTreeBase {
      * Constructor
      */
     InnerAbortNode(const BaseNode *p_child_node_p)
-        : DeltaNode{NodeType::InnerAbortType, p_child_node_p,
+        : DeltaNode{NodeType::InnerAbortType,
+                    p_child_node_p,
                     &p_child_node_p->GetLowKeyPair(),
                     &p_child_node_p->GetHighKeyPair(),
                     p_child_node_p->GetDepth(),
@@ -2825,8 +2832,8 @@ class BwTree : public BwTreeBase {
 
     root_node_p->PushBack(first_sep);
 
-    LOG_TRACE("root id = %" PRIu64 "; first leaf id = %" PRIu64 "", root_id.load(),
-              first_leaf_id);
+    LOG_TRACE("root id = %" PRIu64 "; first leaf id = %" PRIu64 "",
+              root_id.load(), first_leaf_id);
 
     InstallNewNode(root_id, root_node_p);
 
@@ -2866,17 +2873,16 @@ class BwTree : public BwTreeBase {
    * the mapping table rather than CAS with nullptr
    */
   void InitMappingTable() {
-    mapping_table = (std::atomic<const BaseNode *> *) \
-                    mmap(NULL, 1024 * 1024 * 1024, 
-                         PROT_READ | PROT_WRITE, 
-                         MAP_ANONYMOUS | MAP_PRIVATE,
-                         -1, 0);
+    mapping_table = (std::atomic<const BaseNode *> *)mmap(
+        NULL, 1024 * 1024 * 1024, PROT_READ | PROT_WRITE,
+        MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     // If allocation fails, we throw an error because this is uncoverable
     // The upper level functions should either catch this exception
     // and then use another index instead, or simply kill the system
-    if(mapping_table == (void *)-1) {
+    if (mapping_table == (void *)-1) {
       LOG_ERROR("Failed to initialize mapping table");
-      throw IndexException("mmap() failed to initialize mapping table for Bw-Tree");
+      throw IndexException(
+          "mmap() failed to initialize mapping table for Bw-Tree");
     }
 
     LOG_TRACE("Mapping table allocated via mmap()");
@@ -3004,7 +3010,7 @@ class BwTree : public BwTreeBase {
    */
   const KeyValuePair *Traverse(Context *context_p, const ValueType *value_p,
                                std::pair<int, bool> *index_pair_p,
-                               bool unique_key=false) {
+                               bool unique_key = false) {
     // For value collection it always returns nullptr
     const KeyValuePair *found_pair_p = nullptr;
 
@@ -3090,7 +3096,8 @@ class BwTree : public BwTreeBase {
     } else {
       // If a value is given then use this value to Traverse down leaf
       // page to find whether the value exists or not
-      found_pair_p = NavigateLeafNode(context_p, *value_p, index_pair_p, unique_key);
+      found_pair_p =
+          NavigateLeafNode(context_p, *value_p, index_pair_p, unique_key);
     }
 
     if (context_p->abort_flag == true) {
@@ -3173,10 +3180,10 @@ class BwTree : public BwTreeBase {
       // posted later and by the consolidated version of the node
       if ((node_p->GetNextNodeID() != INVALID_NODE_ID) &&
           (KeyCmpGreaterEqual(context_p->search_key, node_p->GetHighKey()))) {
-        LOG_TRACE(
-            "Bounds checking failed (id = %" PRIu64 ") - "
-            "Go right.",
-            snapshot_p->node_id);
+        LOG_TRACE("Bounds checking failed (id = %" PRIu64
+                  ") - "
+                  "Go right.",
+                  snapshot_p->node_id);
 
         JumpToNodeID(node_p->GetNextNodeID(), context_p);
 
@@ -3208,10 +3215,10 @@ class BwTree : public BwTreeBase {
       const BaseNode *node_p = snapshot_p->node_p;
       if ((node_p->GetNextNodeID() != INVALID_NODE_ID) &&
           (KeyCmpGreater(context_p->search_key, node_p->GetHighKey()))) {
-        LOG_TRACE(
-            "Bounds checking for BI failed (id = %" PRIu64 ") - "
-            "Go right.",
-            snapshot_p->node_id);
+        LOG_TRACE("Bounds checking for BI failed (id = %" PRIu64
+                  ") - "
+                  "Go right.",
+                  snapshot_p->node_id);
 
         JumpToNodeID(node_p->GetNextNodeID(), context_p);
         if (context_p->abort_flag == true) {
@@ -3375,7 +3382,8 @@ class BwTree : public BwTreeBase {
           NodeID target_id =
               LocateSeparatorByKey(search_key, inner_node_p, start_p, end_p);
 
-          LOG_TRACE("Found child in inner node; child ID = %" PRIu64 "", target_id);
+          LOG_TRACE("Found child in inner node; child ID = %" PRIu64 "",
+                    target_id);
 
           return target_id;
         }  // case InnerType
@@ -3467,7 +3475,8 @@ class BwTree : public BwTreeBase {
 
             node_p = merge_node_p->right_merge_p;
           } else {
-            LOG_TRACE("Take merge left branch (ID = %" PRIu64 ")", snapshot_p->node_id);
+            LOG_TRACE("Take merge left branch (ID = %" PRIu64 ")",
+                      snapshot_p->node_id);
 
             node_p = merge_node_p->child_node_p;
           }
@@ -4191,7 +4200,7 @@ class BwTree : public BwTreeBase {
   const KeyValuePair *NavigateLeafNode(Context *context_p,
                                        const ValueType &search_value,
                                        std::pair<int, bool> *index_pair_p,
-                                       bool unique_key=false) {
+                                       bool unique_key = false) {
     // This will go to the right sibling until we have seen
     // a node whose range match the search key
     NavigateSiblingChain(context_p);
@@ -4236,7 +4245,8 @@ class BwTree : public BwTreeBase {
             // We do not need to check any delete set here, since if the
             // value has been deleted earlier then this function would
             // already have returned
-            if (unique_key == true || ValueCmpEqual(scan_start_it->second, search_value)) {
+            if (unique_key == true ||
+                ValueCmpEqual(scan_start_it->second, search_value)) {
               // Since only Delete() will use this piece of information
               // we set exist flag to false to indicate that the value
               // has been invalidated
@@ -4264,7 +4274,8 @@ class BwTree : public BwTreeBase {
               static_cast<const LeafInsertNode *>(node_p);
 
           if (KeyCmpEqual(search_key, insert_node_p->item.first)) {
-            if (unique_key == true || ValueCmpEqual(insert_node_p->item.second, search_value)) {
+            if (unique_key == true ||
+                ValueCmpEqual(insert_node_p->item.second, search_value)) {
               // Only Delete() will use this
               // We just simply inherit from the first node
               *index_pair_p = insert_node_p->GetIndexPair();
@@ -4283,7 +4294,8 @@ class BwTree : public BwTreeBase {
 
           // If the value was deleted then return false
           if (KeyCmpEqual(search_key, delete_node_p->item.first)) {
-            if (unique_key == true || ValueCmpEqual(delete_node_p->item.second, search_value)) {
+            if (unique_key == true ||
+                ValueCmpEqual(delete_node_p->item.second, search_value)) {
               // Only Insert() will use this
               // We just simply inherit from the first node
               *index_pair_p = delete_node_p->GetIndexPair();
@@ -4755,7 +4767,7 @@ class BwTree : public BwTreeBase {
                 new_leaf_node_p->PushBack(sss.PopFront()->item);
               } else {
                 PELOTON_ASSERT(sss.GetFront()->GetType() ==
-                          NodeType::LeafDeleteType);
+                               NodeType::LeafDeleteType);
 
                 // ... and here
                 sss.PopFront();
@@ -5469,7 +5481,8 @@ class BwTree : public BwTreeBase {
                                     parent_snapshot_p->node_p);
 
     if (ret == true) {
-      LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64 ") delta CAS succeeds",
+      LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64
+                ") delta CAS succeeds",
                 GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
 
       // Update parent node pointer to reflect the fact that it has been
@@ -5480,10 +5493,10 @@ class BwTree : public BwTreeBase {
 
       return true;
     } else {
-      LOG_TRACE(
-          "Index term insert (from %" PRIu64 " to %" PRIu64 ") delta CAS failed. "
-          "ABORT",
-          GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
+      LOG_TRACE("Index term insert (from %" PRIu64 " to %" PRIu64
+                ") delta CAS failed. "
+                "ABORT",
+                GetLatestNodeSnapshot(context_p)->node_id, insert_item.second);
 
       // Set abort, and remove the newly created node
       context_p->abort_flag = true;
@@ -5956,7 +5969,7 @@ class BwTree : public BwTreeBase {
               const BaseNode *node_p = GetNode(found_item_p->second);
 
               PELOTON_ASSERT(node_p->GetType() == NodeType::InnerRemoveType ||
-                        node_p->GetType() == NodeType::LeafRemoveType);
+                             node_p->GetType() == NodeType::LeafRemoveType);
 
 #endif
 
@@ -6208,7 +6221,8 @@ class BwTree : public BwTreeBase {
         bool ret = InstallNodeToReplace(node_id, split_node_p, node_p);
 
         if (ret == true) {
-          LOG_TRACE("Leaf split delta (from %" PRIu64 " to %" PRIu64 ") CAS succeeds. ABORT",
+          LOG_TRACE("Leaf split delta (from %" PRIu64 " to %" PRIu64
+                    ") CAS succeeds. ABORT",
                     node_id, new_node_id);
 
           // TODO: WE ABORT HERE TO AVOID THIS THREAD POSTING ANYTHING
@@ -6356,10 +6370,10 @@ class BwTree : public BwTreeBase {
         bool ret = InstallNodeToReplace(node_id, split_node_p, node_p);
 
         if (ret == true) {
-          LOG_TRACE(
-              "Inner split delta (from %" PRIu64 " to %" PRIu64 ") CAS succeeds."
-              " ABORT",
-              node_id, new_node_id);
+          LOG_TRACE("Inner split delta (from %" PRIu64 " to %" PRIu64
+                    ") CAS succeeds."
+                    " ABORT",
+                    node_id, new_node_id);
 
           // Same reason as in leaf node
           context_p->abort_flag = true;
@@ -6585,7 +6599,7 @@ class BwTree : public BwTreeBase {
 
     // The caller must make sure this is true
     PELOTON_ASSERT(node_p->GetNextNodeID() == INVALID_NODE_ID ||
-              KeyCmpLess(search_key, node_p->GetHighKey()));
+                   KeyCmpLess(search_key, node_p->GetHighKey()));
 
     while (1) {
       switch (node_p->GetType()) {
@@ -6724,7 +6738,7 @@ class BwTree : public BwTreeBase {
 
     // First check that the node is always in the range of the inner node
     PELOTON_ASSERT(node_p->GetNextNodeID() == INVALID_NODE_ID ||
-              KeyCmpLess(search_key, node_p->GetHighKey()));
+                   KeyCmpLess(search_key, node_p->GetHighKey()));
 
     // We can only search for left sibling on inner delta chain
     PELOTON_ASSERT(node_p->IsOnLeafDeltaChain() == false);
@@ -6902,11 +6916,11 @@ class BwTree : public BwTreeBase {
           // of the consolidated node, so need to add it to the GC instead
           // of directly releasing its memory
 
-          InnerNode *inner_node_p = CollectAllSepsOnInner(
-              snapshot_p,
-              // Must +1 to avoid looping on the same depth
-              // without any consolidation
-              snapshot_p->node_p->GetDepth() + 1);
+          InnerNode *inner_node_p =
+              CollectAllSepsOnInner(snapshot_p,
+                                    // Must +1 to avoid looping on the same
+                                    // depth without any consolidation
+                                    snapshot_p->node_p->GetDepth() + 1);
 
           bool ret = InstallNodeToReplace(snapshot_p->node_id, inner_node_p,
                                           snapshot_p->node_p);
@@ -7012,12 +7026,13 @@ class BwTree : public BwTreeBase {
    *
    * This function returns false if value already exists
    * If CAS fails this function retries until it succeeds
-   * 
-   * Note that this function also takes a unique_key argument, to indicate whether
-   * we allow the same key with different values. For a primary key index this
-   * should be set true. By default we allow non-unique key
+   *
+   * Note that this function also takes a unique_key argument, to indicate
+   * whether we allow the same key with different values. For a primary key
+   * index this should be set true. By default we allow non-unique key
    */
-  bool Insert(const KeyType &key, const ValueType &value, bool unique_key=false) {
+  bool Insert(const KeyType &key, const ValueType &value,
+              bool unique_key = false) {
     LOG_TRACE("Insert called");
 
 #ifdef BWTREE_DEBUG
@@ -7034,7 +7049,8 @@ class BwTree : public BwTreeBase {
       // Also if the key previously exists in the delta chain
       // then return the position of the node using next_key_p
       // if there is none then return nullptr
-      const KeyValuePair *item_p = Traverse(&context, &value, &index_pair, unique_key);
+      const KeyValuePair *item_p =
+          Traverse(&context, &value, &index_pair, unique_key);
 
       // If the key-value pair already exists then return false
       if (item_p != nullptr) {
@@ -7585,7 +7601,7 @@ class BwTree : public BwTreeBase {
       // would always fail, until we have cleaned all epoch nodes
       current_epoch_p = nullptr;
 
-      LOG_DEBUG("Clearing the epoch in ~EpochManager()...");
+      LOG_TRACE("Clearing the epoch in ~EpochManager()...");
 
       // If all threads has exited then all thread counts are
       // 0, and therefore this should proceed way to the end
@@ -7614,14 +7630,15 @@ class BwTree : public BwTreeBase {
       LOG_TRACE("Garbage Collector has finished freeing all garbage nodes");
 
 #ifdef BWTREE_DEBUG
-      LOG_TRACE("Stat: Freed %" PRIu64 " nodes and %" PRIu64 " NodeID by epoch manager",
+      LOG_TRACE("Stat: Freed %" PRIu64 " nodes and %" PRIu64
+                " NodeID by epoch manager",
                 freed_count, freed_id_count);
 
-      LOG_TRACE("      Epoch created = %" PRIu64 "; epoch freed = %" PRIu64 "", epoch_created,
-                epoch_freed);
+      LOG_TRACE("      Epoch created = %" PRIu64 "; epoch freed = %" PRIu64 "",
+                epoch_created, epoch_freed);
 
-      LOG_TRACE("      Epoch join = %" PRIu64 "; epoch leave = %" PRIu64 "", epoch_join.load(),
-                epoch_leave.load());
+      LOG_TRACE("      Epoch join = %" PRIu64 "; epoch leave = %" PRIu64 "",
+                epoch_join.load(), epoch_leave.load());
 #endif
 
       // NOTE: Only unmap memory here because we need to access the mapping
@@ -7629,15 +7646,15 @@ class BwTree : public BwTreeBase {
       // function will invoke illegal memory access
       int munmap_ret = munmap(tree_p->mapping_table, 1024 * 1024 * 1024);
 
-      // Although failure of munmap is not fatal, we still print out 
+      // Although failure of munmap is not fatal, we still print out
       // an error log entry
       // Otherwise just trace log
-      if(munmap_ret != 0) {
+      if (munmap_ret != 0) {
         LOG_ERROR("munmap() returns with %d", munmap_ret);
       } else {
         LOG_TRACE("Mapping table is unmapped for Bw-Tree");
       }
-      
+
       return;
     }
 
@@ -8913,8 +8930,9 @@ class BwTree : public BwTreeBase {
         // We must have reached a node whose low key is less than the
         // low key we used as the search key
         // Either it has a -Inf low key, or the low key could be compared
-        PELOTON_ASSERT((node_p->GetLowKeyPair().second == INVALID_NODE_ID) ||
-                  (tree_p->KeyCmpLess(node_p->GetLowKey(), low_key) == true));
+        PELOTON_ASSERT(
+            (node_p->GetLowKeyPair().second == INVALID_NODE_ID) ||
+            (tree_p->KeyCmpLess(node_p->GetLowKey(), low_key) == true));
 
         // Release the current leaf page, and
         ic_p->DecRef();

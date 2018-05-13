@@ -753,8 +753,8 @@ ResultType TimestampOrderingTransactionManager::CommitTransaction(
     if (ddl_type == DDLType::CREATE) continue;
     oid_t database_oid = std::get<0>(obj);
     oid_t table_oid = std::get<1>(obj);
-    oid_t index_oid = std::get<2>(obj);
-    gc_object_set->emplace_back(database_oid, table_oid, index_oid);
+    oid_t object_oid = std::get<2>(obj);
+    gc_object_set->emplace_back(database_oid, table_oid, object_oid, ddl_type);
   }
 
   oid_t database_id = 0;
@@ -932,8 +932,8 @@ ResultType TimestampOrderingTransactionManager::AbortTransaction(
     if (ddl_type == DDLType::DROP) continue;
     oid_t database_oid = std::get<0>(obj);
     oid_t table_oid = std::get<1>(obj);
-    oid_t index_oid = std::get<2>(obj);
-    gc_object_set->emplace_back(database_oid, table_oid, index_oid);
+    oid_t object_oid = std::get<2>(obj);
+    gc_object_set->emplace_back(database_oid, table_oid, object_oid, ddl_type);
   }
 
   oid_t database_id = 0;

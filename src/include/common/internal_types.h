@@ -1260,10 +1260,11 @@ enum class DDLType {
   INVALID,
   CREATE,
   DROP,
+  ALTER,
 };
 typedef tbb::concurrent_vector<std::tuple<oid_t, oid_t, oid_t, DDLType>>
     CreateDropSet;
-typedef std::vector<std::tuple<oid_t, oid_t, oid_t>> GCObjectSet;
+typedef std::vector<std::tuple<oid_t, oid_t, oid_t, DDLType>> GCObjectSet;
 
 //===--------------------------------------------------------------------===//
 // File Handle
