@@ -87,8 +87,21 @@ void TableScanTranslator::Produce() const {
     }
   }
   ScanConsumer scan_consumer{*this, sel_vec};
+
+  // Get column_ids from ScanPlan and populate column_ids_vec.
+  auto column_ids = scan_.GetColumnIds();
+  uint32_t num_columns = column_ids.size();
+  auto *column_ids_raw_vec = codegen.AllocateBuffer(
+      codegen.Int32Type(), num_columns, "columnIdsVector");
+  Vector column_ids_vec{column_ids_raw_vec, num_columns, codegen.Int32Type()};
+  for (uint32_t column_idx = 0; column_idx < num_columns; column_idx++) {
+    auto column_id = column_ids[column_idx];
+    column_ids_vec.SetValue(codegen, codegen.Const32(column_idx),
+                            codegen.Const32(column_id));
+  }
+
   table_.GenerateScan(codegen, table_ptr, sel_vec.GetCapacity(), scan_consumer,
-                      predicate_ptr, num_preds);
+                      predicate_ptr, num_preds, column_ids_vec);
   LOG_TRACE("TableScan on [%u] finished producing tuples ...", table.GetOid());
 }
 

@@ -69,8 +69,8 @@ llvm::Value *Table::GetZoneMapManager(CodeGen &codegen) const {
 // @endcode
 void Table::GenerateScan(CodeGen &codegen, llvm::Value *table_ptr,
                          uint32_t batch_size, ScanCallback &consumer,
-                         llvm::Value *predicate_ptr,
-                         size_t num_predicates) const {
+                         llvm::Value *predicate_ptr, size_t num_predicates,
+                         UNUSED_ATTRIBUTE Vector column_ids_vec) const {
   // Allocate some space for the column layouts
   const auto num_columns =
       static_cast<uint32_t>(table_.GetSchema()->GetColumnCount());
