@@ -831,6 +831,8 @@ ResultType Catalog::DropLayout(oid_t database_oid, oid_t table_oid,
     LOG_DEBUG("Layout delete failed. Default layout id: %u", layout.GetOid());
     return ResultType::FAILURE;
   }
+  return ResultType::SUCCESS;
+}
 
 /**
  * @brief Change the column name in the catalog.
